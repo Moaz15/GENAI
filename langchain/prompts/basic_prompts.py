@@ -1,6 +1,6 @@
 from langchain_openai import ChatOpenAI
 import os 
-from dotenv import load_dotenv
+from dotenv import load0_dotenv
 
 load_dotenv()
 

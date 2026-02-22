@@ -1,0 +1,19 @@
+core concepts of LangGraph : LLM workflows -> prompt chaining , routing , parallelization , orchestrator workers , evaluator optimizer, 
+Graph , Nodes , Edges : 
+
+Nodes tell what to do , functions  , represent tasks
+Edges - represents flow of tasks
+
+State : shared memory , accessible to all nodes , mutable
+Reducers : decide to add update or delete the changes in state 
+
+LangGraph Execution Model :
+
+Graph Definition , 
+Compilation, 
+Invocation, 
+Super Steps Begin
+Message Passing and Nodes Activation
+Halting Condition
+
+Prompt Chaininng 
