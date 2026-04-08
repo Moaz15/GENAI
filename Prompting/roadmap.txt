@@ -1,0 +1,22 @@
+Prompting Techniques
+Prompt Engineering helps to effectively design and improve prompts to get better results on different tasks with LLMs.
+
+Zero-shot Prompting
+Few-shot Prompting
+Chain-of-Thought Prompting
+Meta Prompting
+Self-Consistency
+Generate Knowledge Prompting
+Prompt Chaining
+Tree of Thoughts
+Retrieval Augmented Generation
+Automatic Reasoning and Tool-use
+Automatic Prompt Engineer
+Active-Prompt
+Directional Stimulus Prompting
+Program-Aided Language Models
+ReAct
+Reflexion
+Multimodal CoT
+Graph Prompting
+
