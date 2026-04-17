@@ -1,0 +1,50 @@
+Classical IR systems (TF‑IDF, BM25) rely on counting words (“terms”) in documents. Before you can count reliably, you must define:
+
+What is a “term”?
+A term is the normalized token you index, typically produced by a pipeline:
+
+Normalization: lowercasing, Unicode normalization (optional), removing punctuation.
+Tokenization: splitting text into tokens (often words).
+(Optional) Stopword removal: remove very common words like the, is, of to reduce noise/size.
+(Optional) Stemming/Lemmatization: map variants to a common form (e.g., connect, connected, connecting → connect).
+
+Your choices here affect:
+
+vocabulary size
+matching behavior (recall/precision)
+scoring quality
+
+What statistics do TF‑IDF/BM25 need?
+
+Even before building an inverted index, you can compute key document-level statistics:
+
+Document length (dl): number of tokens in a document after processing.
+Collection size (N): number of documents.
+Average document length (avgdl):
+[ avgdl = \frac{1}{N}\sum_{d} dl(d) ] BM25 uses dl and avgdl to normalize term frequency by document length._
+Also useful now (and required later):
+
+Term Frequency (tf) within a document: count of a term in that doc (used by TF‑IDF and BM25).
+Document Frequency (df): number of documents containing the term (needed for IDF later).
+You can compute df in milestone 1, but it’s also naturally computed when building the inverted index in milestone 2.
+
+-------------------------
+what tokenization is in IR
+In classical IR, everything starts with turning raw text into a sequence of terms that can be counted and matched.
+
+A tokenizer/analyzer defines:
+
+What counts as a term (word boundaries, punctuation, numbers, hyphens)
+Normalization (lowercasing, handling accents, etc.)
+(Optional) Stopword removal (drop extremely common words)
+(Optional) Stemming/lemmatization (reduce word variants)
+These choices directly affect:
+
+Recall (can we match relevant docs?)
+Example: “MRI” vs “mri” → lowercasing helps.
+Precision (do we match too many irrelevant docs?)
+Removing stopwords can reduce noise.
+Index size (vocabulary + postings size)
+Normalization and stopwords reduce size.
+Scoring behavior for TF‑IDF/BM25
+Tokenization affects tf/df counts, therefore ranking.
