@@ -91,6 +91,7 @@ Approximate Nearest Neighbor (ANN) Retrieval
 
 Exact nearest neighbor search is computationally infeasible for large corpora.
 RAG systems rely on ANN indexes (e.g., HNSW) that trade:
+
 Recall
 Latency
 Memory

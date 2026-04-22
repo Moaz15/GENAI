@@ -4,3 +4,5 @@ openai
 python-dotenv
 pandas
 beir
+nltk
+

@@ -1,0 +1,72 @@
+The Tokenization Pipeline: 
+From Raw Text to IndexIn a professional IR system, text doesn't just get "split"; 
+it moves through a pipeline. Here is the structured breakdown of those stages.
+
+1. Lexical Analysis (The "Front Door")This is the initial breakdown of raw character streams into discrete units.
+Word Segmentation: Identifying word boundaries.
+Challenge: English is space-delimited, but languages like Chinese or Japanese require Maximum Matching or statistical models.
+Handling Delimiters: Defining "breaks" (tabs, newlines, whitespace).
+Punctuation Logic: * 
+Internal: Handling abbreviations (e.g., Ph.D., m.p.h.).
+Terminal: Stripping trailing periods/commas without losing meaning (e.g., C++ vs. C).
+
+2. Text Normalization (Equivalence Classes)Ensuring different "looks" of a word point to the same "meaning" in your index.
+Case Folding: Lowercasing (standard), or casefold() for handling international scripts (like German "ß" → "ss").
+Unicode Normalization: Using NFD/NFC so that café (composed) matches cafe + ´ (decomposed).
+Spelling Variants: Mapping British to American English (e.g., colour $\rightarrow$ color).
+Acronyms: Standardizing U.S.A. and USA into a single token.
+
+3. Morphology: Stemming & LemmatizationThis is the core of "Classical IR," aimed at reducing the Vocabulary Size.
+FeatureStemmingLemmatizationApproachHeuristic/Rule-based (Chops ends)Linguistic/Dictionary-basedSpeedVery FastSlower (requires POS tagging)AccuracyLower (creates "fake" words)Higher (finds the true "Lemma")Examplestudies $\rightarrow$ studistudies $\rightarrow$ studyKey Algorithms: Porter Stemmer (Standard), Snowball (Improved Porter), and Lancaster (Aggressive).Pitfall: Watch for Over-stemming (e.g., universal and universe both becoming univers).
+
+4. Noise Reduction (Stop-word Removal)The Theory: Zipf's Law states that a few words (the, a, is) appear with massive frequency but carry almost zero informational weight.Dynamic Lists: Instead of a fixed list (NLTK), modern systems often calculate stop-words based on the specific collection’s frequency.The Modern Shift: Many modern engines (Elasticsearch/Solr) keep stop-words but use BM25 scoring to down-weight them, allowing for phrase searches like "To be or not to be."
+
+5. Advanced Token ConstructionSometimes, a single word isn't the best unit of information.N-Grams: * Character N-Grams: (e.g., apple $\rightarrow$ app, ppl, ple) for fuzzy matching/typo tolerance.Word N-Grams (Shingles): (e.g., New York) to capture phrases.Subword Tokenization (The Modern Bridge): Used in LLMs/BERT. Methods like BPE (Byte Pair Encoding) or WordPiece split rare words into chunks (e.g., unhappiness $\rightarrow$ un-happi-ness).Entity Preservation: Using Regex to ensure URLs, hashtags, and emails aren't broken into pieces.
+
+📊 Evaluation MetricsHow do you know if your tokenizer is good?
+Token Count: The total number of tokens in your collection.
+Vocabulary Size: The number of unique terms (this directly impacts the RAM/storage of your Inverted Index).
+Information Loss: Ensuring C++ didn't become C or COVID-19 didn't become 19.
+Expert Note: Always prioritize Recall (finding all relevant docs) vs. Precision (finding only relevant docs) when designing your tokenizer. Stemming increases Recall but can hurt Precision.
+
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Tokenization — Theory Keywords
+
+Core Concepts
+Tokenization
+Lexical Analysis
+Text Normalization
+Case Folding
+
+
+Preprocessing Techniques
+Stopword Removal
+Stemming
+Lemmatization
+Noise Removal
+Punctuation Handling
+
+Token Types
+Terms
+Tokens
+Vocabulary
+Unique Terms
+
+Advanced Tokenization
+N-grams (Unigram, Bigram, Trigram)
+Subword Tokenization (BPE, WordPiece)
+Character-level Tokenization
+
+Special Handling
+Hyphenated Words
+Numbers in Text
+Named Entities
+Scientific Terms
+
+Trade-offs
+Recall vs Precision
+Over-tokenization
+Under-tokenization
+
