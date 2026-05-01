@@ -1,72 +1,163 @@
-The Tokenization Pipeline: 
-From Raw Text to IndexIn a professional IR system, text doesn't just get "split"; 
-it moves through a pipeline. Here is the structured breakdown of those stages.
-
-1. Lexical Analysis (The "Front Door")This is the initial breakdown of raw character streams into discrete units.
-Word Segmentation: Identifying word boundaries.
-Challenge: English is space-delimited, but languages like Chinese or Japanese require Maximum Matching or statistical models.
-Handling Delimiters: Defining "breaks" (tabs, newlines, whitespace).
-Punctuation Logic: * 
-Internal: Handling abbreviations (e.g., Ph.D., m.p.h.).
-Terminal: Stripping trailing periods/commas without losing meaning (e.g., C++ vs. C).
-
-2. Text Normalization (Equivalence Classes)Ensuring different "looks" of a word point to the same "meaning" in your index.
-Case Folding: Lowercasing (standard), or casefold() for handling international scripts (like German "ß" → "ss").
-Unicode Normalization: Using NFD/NFC so that café (composed) matches cafe + ´ (decomposed).
-Spelling Variants: Mapping British to American English (e.g., colour $\rightarrow$ color).
-Acronyms: Standardizing U.S.A. and USA into a single token.
-
-3. Morphology: Stemming & LemmatizationThis is the core of "Classical IR," aimed at reducing the Vocabulary Size.
-FeatureStemmingLemmatizationApproachHeuristic/Rule-based (Chops ends)Linguistic/Dictionary-basedSpeedVery FastSlower (requires POS tagging)AccuracyLower (creates "fake" words)Higher (finds the true "Lemma")Examplestudies $\rightarrow$ studistudies $\rightarrow$ studyKey Algorithms: Porter Stemmer (Standard), Snowball (Improved Porter), and Lancaster (Aggressive).Pitfall: Watch for Over-stemming (e.g., universal and universe both becoming univers).
-
-4. Noise Reduction (Stop-word Removal)The Theory: Zipf's Law states that a few words (the, a, is) appear with massive frequency but carry almost zero informational weight.Dynamic Lists: Instead of a fixed list (NLTK), modern systems often calculate stop-words based on the specific collection’s frequency.The Modern Shift: Many modern engines (Elasticsearch/Solr) keep stop-words but use BM25 scoring to down-weight them, allowing for phrase searches like "To be or not to be."
-
-5. Advanced Token ConstructionSometimes, a single word isn't the best unit of information.N-Grams: * Character N-Grams: (e.g., apple $\rightarrow$ app, ppl, ple) for fuzzy matching/typo tolerance.Word N-Grams (Shingles): (e.g., New York) to capture phrases.Subword Tokenization (The Modern Bridge): Used in LLMs/BERT. Methods like BPE (Byte Pair Encoding) or WordPiece split rare words into chunks (e.g., unhappiness $\rightarrow$ un-happi-ness).Entity Preservation: Using Regex to ensure URLs, hashtags, and emails aren't broken into pieces.
-
-📊 Evaluation MetricsHow do you know if your tokenizer is good?
-Token Count: The total number of tokens in your collection.
-Vocabulary Size: The number of unique terms (this directly impacts the RAM/storage of your Inverted Index).
-Information Loss: Ensuring C++ didn't become C or COVID-19 didn't become 19.
-Expert Note: Always prioritize Recall (finding all relevant docs) vs. Precision (finding only relevant docs) when designing your tokenizer. Stemming increases Recall but can hurt Precision.
+Tokenization is the process of converting raw text (a character stream) into tokens—the atomic units your system uses for search indexing (IR), analytics, or ML/LLMs. 
+In interviews, the key is to explain it as a pipeline with clear design trade-offs, not as “split by spaces”.
 
 
-
----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-Tokenization — Theory Keywords
-
-Core Concepts
-Tokenization
-Lexical Analysis
-Text Normalization
-Case Folding
+Token vs Term vs Vocabulary
+Token: an occurrence in text after processing
+Example: "Apple apple" → tokens: ["apple", "apple"]
+Term: a unique token in the index (often after normalization)
+Terms: {"apple"}
+Vocabulary: the set of all unique terms in your corpus
+Impacts RAM/storage, index size, and retrieval speed.
 
 
-Preprocessing Techniques
-Stopword Removal
-Stemming
-Lemmatization
-Noise Removal
-Punctuation Handling
+Why tokenization matters
+Determines what can be matched in search (“C++”, “COVID-19”, “U.S.A.”).
+Determines model input length/cost (LLMs charge per token).
+Directly impacts:
+Recall (find all relevant results)
+Precision (avoid irrelevant matches)
 
-Token Types
-Terms
-Tokens
-Vocabulary
-Unique Terms
 
-Advanced Tokenization
-N-grams (Unigram, Bigram, Trigram)
-Subword Tokenization (BPE, WordPiece)
-Character-level Tokenization
+Stage A — Lexical Analysis (Segmentation: “Where do tokens begin/end?”)
+This is deciding boundaries.
 
-Special Handling
-Hyphenated Words
-Numbers in Text
-Named Entities
-Scientific Terms
+A1. Word segmentation
+English: whitespace helps, but still tricky.
+Chinese/Japanese: no spaces → need dictionary-based maximum matching or statistical models.
+Real situation: Building search for Japanese product catalog:
 
-Trade-offs
-Recall vs Precision
-Over-tokenization
-Under-tokenization
+"東京都港区" must be segmented into meaningful units (e.g., Tokyo / Minato / ward).
+Bad segmentation = user queries don’t match.
+
+
+A2. Delimiters & punctuation rules
+You must define what breaks tokens and what stays inside tokens.
+
+Examples and how a robust tokenizer treats them:
+
+Ph.D. → keep as phd or ph.d. depending on needs (academic search might preserve dots)
+C++ → must remain c++ (don’t reduce to c)
+end. → trailing punctuation removed → end
+3.14 → keep as numeric token 3.14 (don’t split into 3 and 14)
+U.S.A. vs USA → unify
+
+Stage B — Text Normalization (Equivalence Classes: “Different forms → same canonical token”)
+
+B1. Case folding
+Basic: lowercase (“Apple” → “apple”)
+Proper: Unicode-aware case folding (important for international text)
+
+B2. Unicode normalization (NFC/NFD)
+Ensures composed and decomposed forms match:
+
+"café" can be one codepoint é or e + ́
+Normalize to NFC (or NFD consistently), else indexing mismatches occur.
+
+B3. Standardizing variants
+British vs American: colour → color
+Acronyms: U.S.A. → USA
+Optional: remove diacritics: résumé → resume (good for recall, may hurt precision in some domains)
+
+
+Stage C — Morphology (Reduce forms: stemming / lemmatization)
+Used to reduce vocabulary and boost recall.
+
+Stemming (fast, heuristic)
+Cuts endings using rules (may create non-words)
+Example: studies → studi (Porter stemmer behavior)
+
+Lemmatization (accurate, linguistic)
+Uses vocabulary + POS tagging to find base form
+Example: studies (verb) → study, better → good (depending on lemmatizer)
+
+Common pitfall: over-stemming
+universe and universal collapsing to same stem can hurt precision.
+stemming “contract” and “contractor” into same root may return irrelevant documents → you might reduce stemming or prefer lemmatization.
+
+Stage D — Noise Reduction (Stop-words and filtering)
+
+Stop-word removal (classic IR)
+Words like the, is, a occur frequently (Zipf’s law) and often add little meaning.
+
+But modern search often doesn’t drop them blindly
+
+Engines like Elasticsearch/Solr often retain stopwords and rely on ranking (BM25) to down-weight them.
+Needed for phrase queries:
+"to be or not to be" must remain searchable.
+
+Query: “how to be eligible for refund”
+Removing “to be” can break phrase intent and proximity scoring.
+
+Stage E — Advanced Token Construction (Beyond “single words”)
+Sometimes a “word” is not the best unit.
+
+E1. N-grams
+Character n-grams (typos/fuzzy matching):
+
+"apple" → app, ppl, ple (3-grams) Used for spell correction, fuzzy search, partial matches.
+
+Word n-grams / shingles (phrase retrieval):
+"new york city" → ["new york", "york city"]
+
+Real situation: E-commerce search:
+Users type “iph” → char n-grams help match “iphone”
+“new york” should rank higher as phrase than separate tokens.
+
+E2. Entity preservation (regex/structured tokens)
+Protect special patterns so they don’t get broken:
+
+URLs: https://example.com/a-b (keep as one token, plus maybe also index parts)
+Emails: name.surname@company.co.uk
+Hashtags: #ThrowbackThursday
+Mentions: @user_name
+Dates: 2026-05-01 (either keep whole + subparts)
+Real situation: Security logs search:
+
+Splitting IP 10.1.2.3 into 10, 1, 2, 3 makes retrieval noisy; preserve as 10.1.2.3 plus optional hierarchical tokens (10.1.*).*
+
+
+E3. Hyphenation policy
+COVID-19 should often stay covid-19 (also index covid and 19 depending on use-case)
+state-of-the-art: could be one token, or multiple, or both
+
+
+Tokenization for LLMs (Modern NLP Tokenization)
+
+Search tokenization ≠ LLM tokenization.
+LLMs typically use subword tokenization:
+
+BPE (Byte Pair Encoding), WordPiece, Unigram LM Goal: handle unknown words and balance vocab size vs sequence length.
+
+Example:
+
+unhappiness → ["un", "happi", "ness"] (illustrative)
+Rare medical term splits into subwords instead of becoming OOV.
+
+IR wants human-meaningful terms for matching/ranking.
+LLMs want a fixed vocabulary that efficiently represents text and handles rare strings.
+
+Over-tokenization vs under-tokenization
+Over-tokenization: too many fragments (hurts precision, increases index size)
+Under-tokenization: too coarse (hurts recall; misses partial matches)
+
+Recall vs precision
+Stemming/normalization generally increases recall.
+Can decrease precision by merging distinct concepts.
+
+Evaluate a Tokenizer
+
+Token count (total tokens processed)
+Vocabulary size (unique terms)
+Index size / memory footprint
+Information loss checks
+Ensure C++ doesn’t become c
+Ensure COVID-19 doesn’t become just 19
+Retrieval metrics (end-to-end)
+Precision/Recall, MAP, NDCG (in search evaluation)
+
+Query success rate / zero-results rate (production metric)
+
+
+
 
