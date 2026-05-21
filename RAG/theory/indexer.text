@@ -1,0 +1,116 @@
+Tokenization produces a clean list of tokens for each document. 
+Indexing is the next step: it takes those tokens from every document and builds data structures that make search fast.
+
+Tokenization = “extract terms”
+Indexing = “organize terms so queries can retrieve documents efficiently”
+
+Why Indexing Exists
+If you have N documents and a user query q, the naive approach is:
+
+For every query, scan all documents and check if query terms appear.
+That is too slow. Indexing precomputes where terms occur so retrieval becomes fast.
+
+
+Core Output of Indexing: The Inverted Index
+An inverted index maps:
+term → posting list (documents containing that term)
+
+Example corpus:
+D1: “covid-19 increases inflammation”
+D2: “vitamin d reduces inflammation”
+
+After tokenization:
+D1 tokens: [covid-19, increases, inflammation]
+D2 tokens: [vitamin, d, reduces, inflammation]
+
+Inverted index:
+covid-19 → [D1]
+vitamin → [D2]
+inflammation → [D1, D2]
+
+For query inflammation, you immediately jump to [D1, D2] instead of scanning the whole corpus.
+
+The Two Main Parts of an Inverted Index
+
+Dictionary / Lexicon
+This is the “table of contents”:
+all unique terms in the corpus (your vocabulary)
+for each term, metadata like:
+pointer to its posting list
+DF (document frequency)
+sometimes CF (collection frequency)
+
+Posting Lists
+For each term, a list of postings—one per document that contains the term.
+
+What’s Inside a Posting (Posting List Components)
+
+Minimum (non-positional index)
+A posting typically stores:
+
+doc_id: document identifier (often an integer)
+tf: term frequency in that document
+Example: inflammation → [(D1, tf=1), (D2, tf=1)]
+
+Positional index (adds positions)
+Adds:
+positions: token offsets in the document
+Example: inflammation → [(D1, tf=1, pos=[3]), (D2, tf=1, pos=[4])]
+
+Why positions matter:
+
+phrase queries: "vitamin d"
+proximity: covid NEAR/5 inflammation
+highlighting matched spans
+
+
+Document Statistics Collected During Indexing (Needed for BM25)
+
+Indexing often computes document-level stats once and stores them:
+
+dl (document length): number of tokens in doc after tokenization
+N: total number of documents
+avgdl: average document length across corpus
+
+
+BM25 needs dl, avgdl, N, and df(term).
+
+Term Statistics (Used by TF-IDF/BM25)
+Indexing makes term statistics easy to compute/store:
+TF(t, d): occurrences of term t in document d
+DF(t): number of documents containing term t
+CF(t): total occurrences of t in the entire corpus
+
+Intuition:
+
+high DF terms are less informative (common)
+low DF terms are more discriminative (rare scientific entities)
+
+
+The Indexing Pipeline
+
+Here’s the professional flow after tokenization:
+Assign doc_id
+Map external IDs to integer doc IDs for efficiency.
+
+
+Tokenize each document
+You already do this (lowercasing, regex tokens, stopword rules, etc.).
+
+Count term frequencies
+Build a per-document histogram: term → tf
+
+Update inverted index
+For each term in the doc, append/update a posting (doc_id, tf[, positions])
+
+
+tokenization controls the vocabulary → vocabulary controls the inverted index → index controls recall/precision.
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,194 @@
+A ranker is the component of a search engine that takes a query and a set of candidate documents and assigns each document a relevance score. 
+Documents are then sorted by score.
+
+Retrieval (candidate generation): quickly find documents that might match the query (using the inverted index).
+Ranking (scoring): decide which of those matches are best.
+
+What a ranker is trying to do
+A ranker approximates:
+“How likely is document d useful for query q?”
+
+Because we don’t truly “understand” meaning in classic IR, we use measurable signals:
+
+the query terms appear in the doc (tf)
+the terms are rare in the whole corpus (idf from df)
+the doc isn’t being unfairly boosted because it’s long (length normalization)
+
+
+The classic scoring shape (bag-of-words)
+Most lexical rankers treat query and document as bags of words (order ignored) and compute:
+
+Score(d, q) = sum over t in q of w(t, q) * s(t, d)
+
+Take each term (t) in the query (example query: “vitamin d inflammation” has 3 terms).
+
+For each term, compute a contribution to the document’s score:
+
+(s(t,d)): “How well does document (d) match term (t)?”
+usually based on tf (how often the term appears in the doc),
+idf (how rare/important the term is),
+and sometimes doc length normalization (BM25).
+
+Optionally multiply by:
+(w(t,q)): “How important is this term in the query?”
+often just 1
+or higher if the query repeats a term or you boost certain terms.
+
+Add up contributions for all query terms → total score.
+
+Key statistics all rankers rely on
+-------------------------------------------------------------------------------------------------------------------------------------------------
+
+1) TF (term frequency)
+(tf(t,d)): number of times term (t) occurs in document (d)
+Intuition: more occurrences → doc is more about that term
+But: after a point, repeats shouldn’t keep increasing score a lot (saturation)
+
+2) DF and IDF (rarity)
+(df(t)): number of docs containing term (t)
+Rare terms are more informative.
+IDF is a function of df:
+high df → low idf (common term)
+low df → high idf (rare term)
+
+3) Document length normalization
+Long documents match more terms by chance.
+Rankers often penalize long docs relative to average length.
+
+Three families of “rankers” 
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+A) Boolean / coordination rankers (very simple)
+-----------------------------------------------------------------
+Idea: count matches; ignore frequency and rarity.
+
+What it does
+It only asks one question for each query word:
+
+“Does this word appear in the document at least once?”
+
+If yes → add 1 point
+If no → add 0 points
+Then it adds up the points.
+
+Example
+Query: "apple watch charger"
+
+Doc 1 contains: apple, watch (not charger) → score = 2
+Doc 2 contains: apple, watch, charger → score = 3
+Doc 3 contains: only apple → score = 1
+
+So Doc 2 ranks highest because it matches the most query terms.
+
+Pros:
+fast, predictable, good for strict filtering 
+
+Cons:
+Two documents can get the same score even if one is clearly better, because it doesn’t measure “how strongly” they match—only whether they match at all.
+
+Use case:
+“must contain all these words” style search.
+legal/compliance searches.
+simple baseline for comparison.
+
+
+B) TF-IDF rankers (classic baseline)
+-----------------------------------------------------------------
+
+A TF‑IDF ranker gives a document a higher score when:
+
+the query word appears many times in the document (TF), and
+the query word is rare across the whole collection (IDF).
+
+If a document repeats your query term, it’s probably about that topic. (TF)
+If the term is rare, it’s more informative than common words like “the”. (IDF)
+
+For one query term (t) in a document (d):
+[ score(t,d)= tf(t,d) * log(N / df(t)) ]
+where:
+
+N is the total number of documents.
+df(t) is the number of documents containing term t (document frequency).
+tf(t,d) is how many times t appears in document d.
+
+Overall score = sum of (score(t,d)) for all terms t in the query.
+
+Pros:
+simple and effective baseline 
+Cons:
+tf can grow too much (no natural saturation)
+length normalization is not built-in unless you add it (e.g., cosine norm)
+
+Use case:
+small systems, baseline comparisons, educational projects.
+
+
+C) BM25 rankers (standard lexical ranking)
+----------------------------------------------------------------
+A BM25 ranker is the most common “traditional keyword search” scoring method. You can think of it as TF‑IDF, but improved to behave better in real search engines.
+
+1) TF saturation (diminishing returns)
+In TF‑IDF, repeating a word keeps boosting the score linearly.
+BM25 says:
+the first few mentions of a query term matter a lot,
+but the 20th, 50th mention shouldn’t keep adding much.
+So TF “caps out” gradually instead of growing forever.
+
+2) Length normalization
+Long documents naturally contain more words, so they match more queries by chance.
+BM25 applies a correction so:
+a long doc doesn’t win just because it’s long,
+a shorter doc can still rank higher if it’s more focused.
+
+3) Robust IDF
+BM25 uses a robust IDF formula that behaves well across edge cases (very common or very rare terms).
+
+Per query term (t) in document (d):
+[ score(t,d) = idf(t) * ( tf(t,d)*(k1+1) / ( tf(t,d) + k1 * (1-b + b * |d|/avgdl) ) ) ]
+score = importance of the word × how strongly this doc matches it
+
+IDF(t): rare terms give more points.
+The fraction part: gives points for tf, but with saturation and doc length correction.
+
+Then, like TF‑IDF, you usually sum across all query terms to get the final doc score.
+
+Parameters (simple meaning)
+k1: controls how much term frequency matters
+higher k1 → repeating the term helps more
+lower k1 → saturates faster
+b: controls how strongly long documents are penalized
+b = 0 → ignore length (no penalty)
+b = 1 → strong length normalization
+
+
+Pros:
+strong default lexical scorer
+widely used as first-stage ranker 
+Cons:
+still lexical (can’t match paraphrases without synonyms/semantic retrieval)
+
+Use case:
+almost every practical keyword search system.
+
+
+A good ranker usually answers “yes” to:
+
+Does it reward a term appearing in the doc? (tf)
+Does it reward rare query terms more? (idf)
+Does it avoid long docs winning by accident? (length norm)
+Does it avoid infinite benefit from repeating the same word? (tf saturation)
+TF-IDF does (1)(2), BM25 does all four.
+
+
+Rankers are often stacked:
+Stage 1 retrieval/ranking: BM25 (fast) returns top 100–1000
+Stage 2 reranking: ML model (slower) reranks top 50–200
+Stage 3: business rules / diversity / personalization
+This keeps search fast while improving quality.
+
+
+
+
+
+
+
+

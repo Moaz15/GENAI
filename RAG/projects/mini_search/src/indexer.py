@@ -17,6 +17,7 @@ class Indexer:
             for line in f:
                 line = line.strip()
                 if line:
+                    #doesn’t load the entire corpus into memory
                     yield json.loads(line)
 
     def process_document(self, doc: dict) -> Tuple[str, int]:
