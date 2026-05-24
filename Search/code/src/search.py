@@ -104,30 +104,53 @@ class Searcher:
                     df=df,
                     doc_len=int(dl),
                 )
-                
+
         if not scores:
             return []
 
-        ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:top_k]
-        return [SearchResult(doc_id=doc_id, score=score) for doc_id, score in ranked]
+        ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)[
+            :top_k
+        ]
+        return [
+            SearchResult(doc_id=doc_id, score=score) for doc_id, score in ranked
+        ]
 
 
 def load_stopwords(path: Optional[str]) -> Optional[List[str]]:
     if not path:
         return None
     with open(path, "r", encoding="utf-8") as f:
-        return [line.strip() for line in f if line.strip() and not line.startswith("#")]
+        return [
+            line.strip()
+            for line in f
+            if line.strip() and not line.startswith("#")
+        ]
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Simple lexical search over inverted index.")
-    parser.add_argument("--index_dir", required=True, help="Directory containing saved index files")
-    parser.add_argument("--prefix", required=True, help="Prefix used when saving index files")
-    parser.add_argument("--ranker", default="bm25", choices=["bm25", "tfidf", "coord"], help="Ranking function")
+    parser = argparse.ArgumentParser(
+        description="Simple lexical search over inverted index."
+    )
+    parser.add_argument(
+        "--index_dir",
+        required=True,
+        help="Directory containing saved index files",
+    )
+    parser.add_argument(
+        "--prefix", required=True, help="Prefix used when saving index files"
+    )
+    parser.add_argument(
+        "--ranker",
+        default="bm25",
+        choices=["bm25", "tfidf", "coord"],
+        help="Ranking function",
+    )
     parser.add_argument("--top_k", type=int, default=10)
     parser.add_argument("--stopwords", default=None)
     parser.add_argument("--stemming", action="store_true")
-    parser.add_argument("--query", default=None, help="If provided, run once and exit")
+    parser.add_argument(
+        "--query", default=None, help="If provided, run once and exit"
+    )
 
     args = parser.parse_args()
 
@@ -141,10 +164,13 @@ def main():
     )
 
     if args.query is not None:
-        results = searcher.search(args.query, top_k=args.top_k, ranker_name=args.ranker)
+        results = searcher.search(
+            args.query, top_k=args.top_k, ranker_name=args.ranker
+        )
         for r in results:
             print(f"{r.doc_id}\t{r.score:.6f}")
         return
+
 
 if __name__ == "__main__":
     main()

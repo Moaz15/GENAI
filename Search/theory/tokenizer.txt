@@ -1,8 +1,8 @@
 Tokenization is the process of converting raw text (a character stream) into tokens—the atomic units your system uses for search indexing (IR), analytics, or ML/LLMs. 
-In interviews, the key is to explain it as a pipeline with clear design trade-offs, not as “split by spaces”.
 
 
 Token vs Term vs Vocabulary
+---------------------------------------------------------------
 Token: an occurrence in text after processing
 Example: "Apple apple" → tokens: ["apple", "apple"]
 Term: a unique token in the index (often after normalization)
@@ -12,6 +12,7 @@ Impacts RAM/storage, index size, and retrieval speed.
 
 
 Why tokenization matters
+---------------------------------------------------------------
 Determines what can be matched in search (“C++”, “COVID-19”, “U.S.A.”).
 Determines model input length/cost (LLMs charge per token).
 Directly impacts:
@@ -20,6 +21,7 @@ Precision (avoid irrelevant matches)
 
 
 Stage A — Lexical Analysis (Segmentation: “Where do tokens begin/end?”)
+---------------------------------------------------------------
 This is deciding boundaries.
 
 A1. Word segmentation

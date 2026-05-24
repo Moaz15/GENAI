@@ -12,7 +12,11 @@ def load_stopwords(path: Optional[str]) -> Optional[List[str]]:
     if not path:
         return None
     with open(path, "r", encoding="utf-8") as f:
-        return [line.strip() for line in f if line.strip() and not line.startswith("#")]
+        return [
+            line.strip()
+            for line in f
+            if line.strip() and not line.startswith("#")
+        ]
 
 
 def iter_jsonl(path: str) -> Iterable[dict]:
@@ -85,14 +89,24 @@ def ndcg_at_k(ranked: List[str], qrel: Dict[str, float], k: int) -> float:
     return 0.0 if idcg == 0 else dcg / idcg
 
 
-def mrr_at_k(ranked: List[str], qrel: Dict[str, float], k: int, rel_threshold: float = 1.0) -> float:
+def mrr_at_k(
+    ranked: List[str],
+    qrel: Dict[str, float],
+    k: int,
+    rel_threshold: float = 1.0,
+) -> float:
     for i, d in enumerate(ranked[:k], start=1):
         if qrel.get(d, 0.0) >= rel_threshold:
             return 1.0 / i
     return 0.0
 
 
-def precision_at_k(ranked: List[str], qrel: Dict[str, float], k: int, rel_threshold: float = 1.0) -> float:
+def precision_at_k(
+    ranked: List[str],
+    qrel: Dict[str, float],
+    k: int,
+    rel_threshold: float = 1.0,
+) -> float:
     top = ranked[:k]
     if not top:
         return 0.0
@@ -100,7 +114,12 @@ def precision_at_k(ranked: List[str], qrel: Dict[str, float], k: int, rel_thresh
     return hits / len(top)
 
 
-def recall_at_k(ranked: List[str], qrel: Dict[str, float], k: int, rel_threshold: float = 1.0) -> float:
+def recall_at_k(
+    ranked: List[str],
+    qrel: Dict[str, float],
+    k: int,
+    rel_threshold: float = 1.0,
+) -> float:
     relevant = {d for d, r in qrel.items() if r >= rel_threshold}
     if not relevant:
         return 0.0
@@ -111,9 +130,17 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--index_dir", required=True)
     ap.add_argument("--prefix", required=True)
-    ap.add_argument("--queries", required=True, help="data/scifact/queries.jsonl")
-    ap.add_argument("--qrels", required=True, help="data/scifact/qrels/test.tsv or train.tsv")
-    ap.add_argument("--ranker", default="bm25", choices=["bm25", "tfidf", "coord"])
+    ap.add_argument(
+        "--queries", required=True, help="data/scifact/queries.jsonl"
+    )
+    ap.add_argument(
+        "--qrels",
+        required=True,
+        help="data/scifact/qrels/test.tsv or train.tsv",
+    )
+    ap.add_argument(
+        "--ranker", default="bm25", choices=["bm25", "tfidf", "coord"]
+    )
     ap.add_argument("--top_k", type=int, default=100)
 
     ap.add_argument("--stopwords", default="data/stopwords.txt")
@@ -128,7 +155,9 @@ def main():
     ap.add_argument("--show_worst", type=int, default=10)
     args = ap.parse_args()
 
-    tokenizer = Tokenizer(stop_words=load_stopwords(args.stopwords), use_stemming=args.stemming)
+    tokenizer = Tokenizer(
+        stop_words=load_stopwords(args.stopwords), use_stemming=args.stemming
+    )
 
     searcher = Searcher.from_dir(
         index_dir=args.index_dir,
@@ -147,22 +176,36 @@ def main():
         if not qrel:
             continue
 
-        results = searcher.search(text, top_k=args.top_k, ranker_name=args.ranker)
+        results = searcher.search(
+            text, top_k=args.top_k, ranker_name=args.ranker
+        )
         ranked = [r.doc_id for r in results]
 
         nd = ndcg_at_k(ranked, qrel, args.ndcg_k)
-        mr = mrr_at_k(ranked, qrel, args.mrr_k, rel_threshold=args.rel_threshold)
-        pk = precision_at_k(ranked, qrel, args.p_k, rel_threshold=args.rel_threshold)
-        rk = recall_at_k(ranked, qrel, args.r_k, rel_threshold=args.rel_threshold)
+        mr = mrr_at_k(
+            ranked, qrel, args.mrr_k, rel_threshold=args.rel_threshold
+        )
+        pk = precision_at_k(
+            ranked, qrel, args.p_k, rel_threshold=args.rel_threshold
+        )
+        rk = recall_at_k(
+            ranked, qrel, args.r_k, rel_threshold=args.rel_threshold
+        )
 
-        nds.append(nd); mrrs.append(mr); ps.append(pk); rs.append(rk)
+        nds.append(nd)
+        mrrs.append(mr)
+        ps.append(pk)
+        rs.append(rk)
         rows.append((qid, text, nd, mr, pk, rk))
 
     if not rows:
-        print("No queries evaluated. Check qid alignment between queries and qrels.")
+        print(
+            "No queries evaluated. Check qid alignment between queries and qrels."
+        )
         return
 
-    def avg(xs): return sum(xs) / len(xs)
+    def avg(xs):
+        return sum(xs) / len(xs)
 
     print(f"Evaluated queries: {len(rows)}")
     print(f"Ranker: {args.ranker}")
@@ -174,7 +217,9 @@ def main():
     rows.sort(key=lambda x: x[2])  # sort by ndcg ascending
     print("\nWorst queries by NDCG:")
     for qid, text, nd, mr, pk, rk in rows[: args.show_worst]:
-        print(f"- qid={qid}  ndcg={nd:.4f}  mrr={mr:.4f}  p@{args.p_k}={pk:.4f}  r@{args.r_k}={rk:.4f} :: {text}")
+        print(
+            f"- qid={qid}  ndcg={nd:.4f}  mrr={mr:.4f}  p@{args.p_k}={pk:.4f}  r@{args.r_k}={rk:.4f} :: {text}"
+        )
 
 
 if __name__ == "__main__":

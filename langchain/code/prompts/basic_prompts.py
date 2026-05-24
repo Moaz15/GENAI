@@ -1,10 +1,10 @@
 from langchain_openai import ChatOpenAI
-import os 
+import os
 from dotenv import load0_dotenv
 
 load_dotenv()
 
-model = ChatOpenAI(model='gpt-4', temperature=1.5)
+model = ChatOpenAI(model="gpt-4", temperature=1.5)
 
 result = model.invoke("Write a 5 line poem on cricket")
 

@@ -1,11 +1,13 @@
 import math
 from abc import ABC, abstractmethod
 
+
 class Ranker(ABC):
     """
     Abstract Base Class for all ranking functions.
     Ensures that any new ranking method implemented will follow the same structure.
     """
+
     @abstractmethod
     def score(self, tf: int, df: int, doc_len: int) -> float:
         pass
@@ -24,7 +26,9 @@ class TFIDFRanker(Ranker):
 
 
 class BM25Ranker(Ranker):
-    def __init__(self, n_docs: int, avgdl: float, k1: float = 1.2, b: float = 0.75):
+    def __init__(
+        self, n_docs: int, avgdl: float, k1: float = 1.2, b: float = 0.75
+    ):
         self.n_docs = n_docs
         self.avgdl = max(avgdl, 1e-9)
         self.k1 = k1
@@ -43,5 +47,3 @@ class BM25Ranker(Ranker):
 class CoordinateMatchRanker(Ranker):
     def score(self, tf: int, df: int, doc_len: int) -> float:
         return 1.0 if tf > 0 else 0.0
-    
-    

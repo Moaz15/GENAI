@@ -21,6 +21,7 @@ class InvertedIndex:
       df[term]       -> document frequency - How many unique documents contain a term.
       cf[term]       -> collection frequency - The total number of times a term appears across the entire corpus.
     """
+
     def __init__(self):
         self.postings: Dict[str, List[Posting]] = defaultdict(list)
         self.df: Dict[str, int] = {}
@@ -98,7 +99,11 @@ def load_stopwords(path: Optional[str]) -> Optional[List[str]]:
     if not path:
         return None
     with open(path, "r", encoding="utf-8") as f:
-        return [line.strip() for line in f if line.strip() and not line.startswith("#")]
+        return [
+            line.strip()
+            for line in f
+            if line.strip() and not line.startswith("#")
+        ]
 
 
 def build_inverted_index(
@@ -106,7 +111,7 @@ def build_inverted_index(
     tokenizer: Tokenizer,
     include_title: bool = True,
     include_text: bool = True,
-    progress_every: int = 2000
+    progress_every: int = 2000,
 ) -> Tuple[InvertedIndex, Dict[str, Any]]:
     """
     Builds an inverted index from JSONL corpus.
@@ -155,29 +160,60 @@ def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(script_dir)
 
-    parser = argparse.ArgumentParser(description="Build an inverted index from a JSONL corpus.")
+    parser = argparse.ArgumentParser(
+        description="Build an inverted index from a JSONL corpus."
+    )
     parser.add_argument(
         "--corpus",
         default=os.path.join(project_root, "data", "scifact", "corpus.jsonl"),
-        help="Path to corpus.jsonl"
+        help="Path to corpus.jsonl",
     )
     parser.add_argument(
         "--out_dir",
         default=os.path.join(project_root, "data", "index"),
-        help="Output directory"
+        help="Output directory",
     )
-    parser.add_argument("--prefix", default="scifact", help="Prefix for saved files")
+    parser.add_argument(
+        "--prefix", default="scifact", help="Prefix for saved files"
+    )
     parser.add_argument(
         "--stopwords",
         default=os.path.join(project_root, "data", "stopwords.txt"),
-        help="Path to stopwords.txt"
+        help="Path to stopwords.txt",
     )
-    parser.add_argument("--stemming", action="store_true", help="Enable Porter stemming")
-    parser.add_argument("--include_title", action="store_true", default=True, help="Include document title in index")
-    parser.add_argument("--no_title", action="store_false", dest="include_title", help="Exclude document title from index")
-    parser.add_argument("--include_text", action="store_true", default=True, help="Include document text in index")
-    parser.add_argument("--no_text", action="store_false", dest="include_text", help="Exclude document text from index")
-    parser.add_argument("--progress_every", type=int, default=2000, help="Print progress every N documents")
+    parser.add_argument(
+        "--stemming", action="store_true", help="Enable Porter stemming"
+    )
+    parser.add_argument(
+        "--include_title",
+        action="store_true",
+        default=True,
+        help="Include document title in index",
+    )
+    parser.add_argument(
+        "--no_title",
+        action="store_false",
+        dest="include_title",
+        help="Exclude document title from index",
+    )
+    parser.add_argument(
+        "--include_text",
+        action="store_true",
+        default=True,
+        help="Include document text in index",
+    )
+    parser.add_argument(
+        "--no_text",
+        action="store_false",
+        dest="include_text",
+        help="Exclude document text from index",
+    )
+    parser.add_argument(
+        "--progress_every",
+        type=int,
+        default=2000,
+        help="Print progress every N documents",
+    )
     args = parser.parse_args()
 
     stop_words = load_stopwords(args.stopwords)
@@ -190,10 +226,12 @@ def main():
         tokenizer=tokenizer,
         include_title=args.include_title,
         include_text=args.include_text,
-        progress_every=args.progress_every
+        progress_every=args.progress_every,
     )
 
-    index_path = os.path.join(args.out_dir, f"{args.prefix}_inverted_index.json")
+    index_path = os.path.join(
+        args.out_dir, f"{args.prefix}_inverted_index.json"
+    )
     meta_path = os.path.join(args.out_dir, f"{args.prefix}_lexicon_stats.json")
 
     idx.save(index_path)

@@ -2,7 +2,6 @@ import argparse
 import json
 import os
 from typing import Dict, Optional, Tuple, List
-
 from tokenizer import Tokenizer
 
 
@@ -17,7 +16,7 @@ class Indexer:
             for line in f:
                 line = line.strip()
                 if line:
-                    #doesn’t load the entire corpus into memory
+                    # doesn’t load the entire corpus into memory
                     yield json.loads(line)
 
     def process_document(self, doc: dict) -> Tuple[str, int]:
@@ -59,7 +58,11 @@ def load_stopwords(path: Optional[str]) -> Optional[List[str]]:
     if not path:
         return None
     with open(path, "r", encoding="utf-8") as f:
-        return [line.strip() for line in f if line.strip() and not line.startswith("#")]
+        return [
+            line.strip()
+            for line in f
+            if line.strip() and not line.startswith("#")
+        ]
 
 
 def main():
@@ -82,7 +85,9 @@ def main():
     doc_len, stats = indexer.build_doc_stats()
 
     doc_len_path = os.path.join(args.out_dir, f"{args.prefix}_doc_len.json")
-    stats_path = os.path.join(args.out_dir, f"{args.prefix}_collection_stats.json")
+    stats_path = os.path.join(
+        args.out_dir, f"{args.prefix}_collection_stats.json"
+    )
 
     save_json(doc_len, doc_len_path)
     save_json(stats, stats_path)
