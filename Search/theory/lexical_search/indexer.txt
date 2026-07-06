@@ -95,7 +95,6 @@ Map external IDs to integer doc IDs for efficiency.
 
 
 Tokenize each document
-You already do this (lowercasing, regex tokens, stopword rules, etc.).
 
 Count term frequencies
 Build a per-document histogram: term → tf

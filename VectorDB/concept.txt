@@ -1,0 +1,163 @@
+A vector DB stores (id, vector, metadata/payload) and answers:
+
+kNN / top‑K: return K closest vectors to query vector
+Range: return all vectors within distance ≤ threshold (often expensive)
+Core challenge: exact search is O(N·D) per query (N vectors, D dimensions), which becomes too slow at scale. So vector DBs rely on ANN methods.
+
+
+1) Why brute-force (exact nearest neighbor) is “not great”
+
+What it does
+Compute distance from query to every vector, keep best K.
+
+Why it’s expensive
+
+Time: O(N·D) distance computations per query.
+Memory bandwidth bound: reading all vectors dominates.
+Latency grows linearly with N.
+
+When it is used: 
+Small datasets (up to maybe tens/hundreds of thousands depending on hardware/latency goal)
+As a rerank step: ANN retrieves candidates (e.g., 500–5000), then exact distances rerank top‑K
+When you need 100% recall and can afford cost
+
+
+2) ANN methods (structured)
+
+A) Clustering / Inverted File Index (IVF) — “search a few clusters, not all points”
+Idea
+
+Train k-means centroids (clusters).
+Assign each vector to nearest centroid.
+At query time: find closest centroids, search only those lists.
+Key terms
+
+nlist: number of clusters (centroids)
+nprobe: how many clusters to search per query
+Trade-offs
+
+Higher nprobe → better recall, slower
+Larger nlist → smaller lists, faster per-list scan but more training/build complexity
+Best for
+
+Large datasets
+When you can do training / batch index build
+Often paired with PQ for memory savings
+
+B) “Decision tree” / Binary Space Partitioning (BSP) — KD-tree / ball tree style
+Idea Recursively split space into regions (like a tree). Query follows likely branches.
+
+Why it’s limited for modern embeddings
+
+Works better in low dimensions (e.g., < 30–50).
+In high dimensions (e.g., 768+), partitions become less selective (“curse of dimensionality”), and you end up visiting many nodes → approaches brute-force.
+Where it can still appear
+
+Some approximate variants
+Special cases / lower-dimensional vectors
+Not the dominant approach for SOTA vector DB performance on high‑D embeddings
+
+C) HNSW — Graph-based ANN (dominant in many vector DBs)
+Idea Build a layered graph:
+
+Upper layers: sparse “highways” to quickly navigate
+Lower layer: dense connections for local neighborhood
+Search behavior Greedy walk from top layer down, then best-first exploration at bottom.
+
+Key knobs
+
+M: number of neighbor links per node (memory vs recall)
+efConstruction: build-time search breadth (index quality vs build time)
+efSearch: query-time search breadth (recall vs latency)
+Strengths
+
+Very high recall / good latency
+Great for dynamic datasets (inserts) compared to IVF+training
+Costs
+
+Memory heavy (graph edges)
+Deletes/updates can require maintenance/tombstones depending on implementation
+
+D) Product Quantization (PQ) — Compression-based ANN (often with IVF)
+Idea Compress vectors so distance computations are cheaper and memory smaller.
+
+Split vector into sub-vectors (m chunks)
+Quantize each chunk using a codebook
+Store compact codes instead of float vectors
+How search works Approximate distance using precomputed lookup tables (fast).
+
+Trade-offs
+
+Big memory savings + faster scanning
+Some accuracy loss (lower recall/precision)
+Often used as: IVF + PQ (common in FAISS-style systems)
+Best for
+
+Very large corpora where RAM is the limiting factor
+When slight quality loss is acceptable
+
+
+
+
+
+
+
+
+
+1. What is a vector database, and what does it store besides vectors (metadata/payload)?
+2. How is a vector DB different from a relational database index?
+3. What is the difference between **top‑K (kNN)** search and **range** (radius/threshold) search?
+4. Which distance metrics are most common (cosine, dot product, L2), and when are they equivalent?
+5. Why do we normalize vectors? What happens if we don’t?
+6. Why is brute-force exact nearest-neighbor search expensive? What are the bottlenecks?
+7. What does ANN trade off (recall vs latency), and how do you measure recall@K?
+8. When would you choose exact search or exact reranking over pure ANN results?
+
+9. Explain HNSW at a high level. Why does the multi-layer graph help?
+10. In HNSW, what do **M**, **efConstruction**, and **efSearch** control?
+11. How would you tune HNSW for (a) higher recall (b) lower latency (c) lower memory?
+12. What are typical failure modes of HNSW in production (memory growth, deletes, degraded recall)?
+
+13. Explain IVF indexing (centroids + inverted lists). What’s the query-time flow?
+14. What do **nlist** and **nprobe** mean, and how do they affect performance/recall?
+15. Why does IVF require training? What data do you train on?
+16. Compare **IVF_FLAT** vs **IVF_PQ** vs **IVF_SQ8** (conceptual differences).
+
+17. What is Product Quantization (PQ) and what problem does it solve?
+18. What accuracy trade-offs does PQ/quantization introduce, and how do you evaluate them?
+19. When would you avoid quantization?
+
+20. How do vector DBs support **metadata filtering** alongside ANN search?
+21. What is **pre-filter** vs **post-filter**, and how can filtering reduce recall?
+22. How do you design metadata/payload indexes for fast filtered vector queries?
+
+23. What happens to indexing and search quality under heavy inserts/updates/deletes?
+24. What is index compaction/fragmentation in a vector DB context?
+25. How do vector DBs handle consistency of search results while writes are happening?
+
+26. How do sharding and replication typically work in vector DBs?
+27. How do you merge top‑K results across shards while preserving correctness?
+28. What are the main scaling bottlenecks at 10M+ vectors (RAM, index build time, IO, network)?
+
+29. What monitoring metrics matter for vector DBs (p95/p99 latency, recall proxies, memory, index health)?
+30. How do you estimate storage cost: raw vectors vs index overhead (HNSW vs IVF/PQ)?
+31. What is your strategy for re-embedding and embedding versioning in a vector DB?
+32. How would you do zero-downtime index rebuilds or migrations in production?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

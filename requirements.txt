@@ -6,4 +6,3 @@ pandas
 beir
 nltk
 black
-

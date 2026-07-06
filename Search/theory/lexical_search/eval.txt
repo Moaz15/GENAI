@@ -1,0 +1,103 @@
+                  INFORMATION RETRIEVAL EVALUATION FRAMEWORK
+======================================================================
+
+Information Retrieval (IR) systems are evaluated by measuring programmatic 
+outputs against an annotated ground-truth dataset (often termed "qrels"). 
+Evaluation metrics generally fall into two categories:
+1. Unranked Metrics: Assessing total volumes of relevant information.
+2. Ranked Metrics: Accounting for the precise positioning of top results.
+
+Below is the deep mathematical and behavioral breakdown of the four core metrics 
+implemented within the evaluation pipeline.
+----------------------------------------------------------------------
+1. PRECISION @ K (P@K) — The Clutter Metric
+----------------------------------------------------------------------
+* Theoretical Intent:
+  Precision answers the user query: "Out of the first 'K' documents this 
+  system handed back to me, how much of it is actually useful or noise-free?"
+
+* Mathematical Formula:
+  Precision@K = (Count of Relevant Documents within the Top K) / K
+
+* Key Characteristics & User Psychology:
+  - Position-Agnostic: P@K treats all ranks within the threshold uniformly. 
+    If K=10 and 3 relevant items are found, the score is 0.3 whether those 
+    items appear at ranks 1, 2, 3 or 8, 9, 10.
+  - Target Audience: Models a user with limited patience who scans a single 
+    results page and expects clean, highly accurate answers without junk.
+
+----------------------------------------------------------------------
+2. RECALL @ K (R@K) — The Thoroughness Metric
+----------------------------------------------------------------------
+* Theoretical Intent:
+  Recall answers the query: "Out of all truly relevant documents existing 
+  anywhere in the database, what percentage did the system successfully 
+  surface within its top 'K' slots?"
+
+* Mathematical Formula:
+  Recall@K = (Relevant Documents in Top K) / (Total Relevant Documents in Database)
+
+* Key Characteristics & User Psychology:
+  - The Precision-Recall Seesaw: Forcing a search engine to return every single 
+    document in the collection yields a perfect 1.0 Recall, but drops Precision 
+    to near-zero.
+  - Target Audience: Models an exhaustive professional workflow (e.g., patent 
+    lawyers, medical researchers, or scientific literature analysis via SciFact) 
+    where scanning through extra noise is acceptable as long as no vital piece 
+    of evidence is left behind.
+
+----------------------------------------------------------------------
+3. MEAN RECIPROCAL RANK (MRR) — The First-Click Metric
+----------------------------------------------------------------------
+* Theoretical Intent:
+  Evaluates search scenarios where a user is searching for a single target, 
+  a specific fact, or a navigational endpoint. It tracks exactly how far 
+  down the list a user must scroll to hit their very first successful match.
+
+* Mathematical Formula:
+  For a single query, if the first relevant hit occurs at rank 'r':
+  Reciprocal Rank (RR) = 1 / r
+
+  Across an entire query set 'Q':
+  MRR = (1 / |Q|) * Sum(1 / r_i)
+
+* Key Characteristics & User Psychology:
+  - Non-Linear Penalty: Drop-offs are incredibly steep. If the first hit moves 
+    from Rank 1 to Rank 2, your score is cut in half (1.0 -> 0.5). If it sits at 
+    Rank 10, the score drops to 0.10.
+  - Single-Target Limitation: MRR completely ignores everything occurring below 
+    the first hit. A system returning a valid document at Rank 1 followed by 99 
+    garbage lines achieves a perfect 1.0 score.
+
+----------------------------------------------------------------------
+4. NORMALIZED DISCOUNTED CUMULATIVE GAIN (NDCG) — The Industry Standard
+----------------------------------------------------------------------
+* Theoretical Intent:
+  NDCG resolves the limitations of alternative metrics by enforcing two core 
+  principles:
+  1. Graded Relevance: A document can be highly relevant, partially useful, 
+     or completely useless (non-binary scaling).
+  2. Logarithmic User Fatigue: Relevant documents lose value exponentially 
+     the lower they are placed on the page.
+
+* Mathematical Computation Steps:
+  
+  Step A: Cumulative Gain (CG)
+  Sums up the raw relevance weights of the top K results while ignoring order.
+  CG_K = Sum(rel_i) from i=1 to K
+
+  Step B: Discounted Cumulative Gain (DCG)
+  Penalizes relevance by dividing by a logarithmic factor corresponding to its rank position.
+  DCG_K = Sum( (2^rel_i - 1) / log_2(i + 1) ) from i=1 to K
+
+  Step C: Normalization (NDCG)
+  Calculates what a mathematically perfect search result (Ideal DCG / IDCG) 
+  would score by sorting all known relevant documents in descending order. 
+  The final ratio is scaled cleanly between 0.0 and 1.0.
+  NDCG_K = DCG_K / IDCG_K
+
+* Key Characteristics & User Psychology:
+  - This is the comprehensive metric favored by modern search platforms 
+    (Google, Bing) and dense neural vector retrieval architectures, allowing 
+    equitable cross-query engine performance tracking.
+======================================================================

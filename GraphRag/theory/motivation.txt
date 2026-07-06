@@ -1,0 +1,208 @@
+Why get bored of Normal RAG ? 
+
+In “normal” RAG, you mostly retrieve chunks of text that look similar to the question, 
+then ask the LLM to synthesize an answer from those chunks. 
+A knowledge graph helps because it gives retrieval a structured, 
+semantics-aware index of “what is connected to what,” not just “what text is similar to what.”
+
+1) It disambiguates entities (reduces “wrong thing” retrieval)
+
+Normal RAG risk: The phrase “my recent laptop order” might match many transcripts or docs that mention “laptop order,” and the top chunk may refer to the wrong customer/order/model.
+
+With a knowledge graph: “recent laptop order” can be resolved to specific entities:
+
+Customer → hasOrder → Order#12345
+Order#12345 → containsItem → “ThinkPad T14 Gen 4”
+Order#12345 → purchaseDate → 2026‑06‑12
+Customer → hasWarranty → WarrantyPlanX
+So retrieval becomes: “fetch facts linked to this customer’s latest order,” not “find text that sounds similar.”
+
+2) It enables multi-hop retrieval (answers that require joining facts)
+
+Many questions are not in one document chunk. They require combining multiple sources.
+
+Example: drug interaction + patient history
+
+Guideline doc: Drug A interacts with Drug B in patients with condition C
+Patient record: patient has condition C, currently on Drug B
+Normal RAG: Might retrieve the guideline chunk but miss the patient facts (or vice versa), because they’re in different systems and don’t share overlapping wording.
+
+GraphRAG: You traverse: Patient → hasCondition → C
+Patient → takesMedication → Drug B
+Drug A → interactsWith → Drug B (from guideline)
+Then return the connected evidence set. This is “join logic” over relationships, not just semantic similarity.
+
+3) More precise retrieval than chunks (less noise, fewer hallucinations)
+Text chunks often contain:
+
+irrelevant surrounding content
+outdated statements
+ambiguous references (“it”, “this model”, “the previous order”)
+
+A KG stores atomic facts with provenance (where each fact came from). 
+Your context to the LLM becomes smaller and cleaner: 
+the specific order, product, dates, warranty terms, plus the few supporting text snippets that justify them.
+
+4) It bridges structured + unstructured data reliably
+Normal RAG is great when the truth lives in documents. But in real systems, the most reliable truth often lives in structured DBs (orders, inventory, eligibility rules).
+
+A KG can unify:
+
+structured tables (orders, products, customers)
+unstructured text (support transcripts, policies) into one connected layer so the system can pull “the exact model and warranty” from structured data and “the warranty policy details” from text, tied together via shared entities.
+
+5) Better explainability and citations
+With a KG, you can answer and show why:
+
+“I used Order#12345 (source: orders DB)”
+“WarrantyPlanX coverage terms (source: warranty policy doc section 3.2)”
+“This product model maps to that SKU (source: catalog)”
+Normal RAG citations are often “here are the chunks I saw,” which may not clearly support each claim.
+
+LLMS : 
+
+1) What an LLM is
+LLM = Large Language Model that generates text based on patterns learned from massive text data.
+Common interface example: ChatGPT (a chat UI) powered by models like GPT‑4.
+
+2) Core architecture
+Most modern LLMs use the Transformer architecture (Vaswani et al., 2017).
+Transformer enables efficient processing of long text and strong performance across tasks.
+
+3) How training works (the key idea)
+Primary objective: predict the next token/word given previous text.
+Training on diverse data teaches:
+grammar + style
+context handling
+associations (e.g., “Never gonna” → “give you up”)
+
+4) Why it’s more than “autocomplete”
+Even though training is next-token prediction, models show instruction-following behavior:
+can follow constraints (“write a haiku”, “in this style”, “in JSON”)
+can produce structured outputs, summaries, reasoning-like steps
+
+5) “Knowledge” in LLMs (important mental model)
+LLMs don’t store facts like a database.
+They store weights (learned parameters) that encode statistical/semantic patterns.
+So “factual answers” are generated from learned representations, not retrieved from exact stored records.
+
+6) Practical implication (most important takeaway)
+LLM answers can look accurate, but you should validate factual claims with external sources—especially for critical info.
+This is a key motivation for RAG later: bring in trusted, up-to-date info at runtime.
+
+
+Limitations of LLMs
+----------------------------
+
+1) Knowledge cutoff problem
+LLMs only “know” what was in training data up to a cutoff date.
+Anything after that date is unknown unless the system uses external retrieval/tools.
+
+
+2) Outdated information (even before cutoff)
+Even within the cutoff window, an answer can be stale because facts change (ownership, policies, prices, org structure).
+Result: model may state something that used to be true as if it’s still true.
+
+
+3) Hallucinations (confident but wrong)
+LLMs can fabricate facts, citations, URLs, IDs (e.g., wrong WikiData ID) while sounding confident.
+Root cause: they are probabilistic next-token generators, not truth/verification engines.
+High-risk areas: references, identifiers, legal/medical claims, exact numbers.
+
+
+4) Lack of private/proprietary info
+Internal company data (docs, tickets, databases) is not in public training data, so the model can’t answer correctly by default.
+Making it public to “teach the model” is insecure and impractical.
+Requires controlled access via retrieval/permissions.
+
+Other important limitations
+
+Bias from training data.
+No true understanding; can miss nuance/context.
+Prompt injection vulnerability (security risk).
+Inconsistent answers across runs (probabilistic, no persistent memory).
+
+
+Overcoming LLM limitations —
+
+Why you need extra methods
+Business/production use needs precision + factual accuracy + domain knowledge + freshness.
+Base LLMs have cutoff/outdated info, hallucinations, no private data access.
+
+Supervised finetuning (SFT)
+What it is
+
+Train the model on prompt → ideal answer examples to shape behavior/knowledge.
+Where it fits in LLM training (4 stages)
+
+Pretraining: learn language by next-token prediction (very expensive).
+Supervised finetuning: learn “assistant-style” responses from curated examples (cheaper).
+Reward modeling: learn what “good answers” look like via comparisons.
+Reinforcement learning: refine via feedback/interaction.
+Why SFT isn’t the main solution for “fresh facts”
+
+Updating facts via finetuning is non-trivial and unreliable (mixed research results).
+Production-quality finetuned factual models are hard to maintain for constantly changing info.
+
+Retrieval-Augmented Generation (RAG)
+Core idea
+
+Don’t rely on model memory for facts. Retrieve trusted info at runtime and include it in the prompt.
+Two stages
+
+Retrieval: “smart search/lookup” over an external knowledge base (docs, DB, web, internal wiki).
+Augmented generation: LLM answers using question + retrieved context.
+Why it works
+
+Grounds answers in provided evidence, reducing hallucinations.
+Solves:
+knowledge cutoff (you retrieve new info)
+private data access (retrieve from internal sources with permissions)
+outdated info (retrieve latest source of truth)
+How it’s used in practice
+
+User gives only the question.
+System automatically:
+turns question into a query
+retrieves relevant documents/records
+injects them into a prompt template
+LLM generates the final answer.
+Real-world example
+
+ChatGPT “Web Search” mode is essentially RAG: it searches, then answers from retrieved pages (implementation details may vary).
+
+
+What a Knowledge Graph (KG) is
+---------------------------------------------------------------------------------------------------------------------------
+
+Nodes = entities/concepts (Person, Company, Task, Article)
+Edges = relationships (REPORTS_TO, HAS_CEO, ASSIGNED_TO, MENTIONS)
+Properties on nodes/edges store attributes (name, status, dates, text, embeddings)
+
+Why KGs fit RAG better than “docs-only” storage
+Most RAG setups store only unstructured chunks + embeddings.
+That works for “find a passage and summarize”, but fails for precise questions and business queries.
+
+Key advantage: structured + unstructured in one place
+
+Structured facts (CEO, employee since date, task status) enable exact querying.
+Unstructured text (articles, transcripts) provides depth and narrative context.
+
+KGs can store both, and connect them explicitly (e.g., Article MENTIONS Company).
+
+What KGs enable that unstructured RAG struggles with
+
+Exact lookups: “Who is the CEO of OpenAI?”
+Filtering: “Tasks with status = Completed”
+Counting/aggregation: “How many completed tasks are there?”
+Relationship questions: “Which employees report to X?” / “Who is assigned to tasks related to OpenAI?”
+Doing these from text-only requires heavy parsing/inference and is often inaccurate.
+
+Better retrieval strategies (important for RAG quality)
+
+Retrieve via graph traversals (multi-hop): Employee → Task → Article → Company
+Link text to entities: map “OpenAI” in an article to the Company node
+Provide the LLM with:
+facts from the graph (structured)
+plus supporting passages (unstructured) for explanation/citations
+

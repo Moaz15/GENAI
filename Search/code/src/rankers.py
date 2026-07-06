@@ -21,6 +21,7 @@ class TFIDFRanker(Ranker):
         if tf <= 0:
             return 0.0
         # stable, positive IDF
+        # rewards rarity.
         idf = math.log((self.n_docs + 1) / (df + 1)) + 1.0
         return tf * idf
 

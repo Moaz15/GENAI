@@ -1,0 +1,49 @@
+Two core components
+Retriever: finds relevant information (evidence/context).
+Generator: uses that retrieved context to produce the final answer (usually an LLM).
+
+
+A) Retriever (most of the “engineering” work)
+
+1) Text chunking
+Split documents into smaller chunks so each embedding is more specific.
+Key knobs:
+chunk size + overlap
+boundary type (sentence/paragraph/section/semantic)
+Goal: improve retrieval relevance and reduce “mixed-topic” chunks.
+
+2) Embedding model
+Converts text → vector (embedding).
+Must stay consistent across indexing + querying.
+If you change embedding model, you generally must re-embed + rebuild index.
+Embedding dimension matters:
+higher dimension → potentially richer representation but more compute/storage.
+
+3) Vector similarity search function
+Compares query embedding to stored embeddings.
+Common choices:
+Cosine similarity (most common for text semantics; typically preferred for chat/RAG)
+Euclidean distance (less commonly the best default for text)
+
+4) Vector index (ANN index)
+Optional but practically required for scale.
+Uses Approximate Nearest Neighbor (ANN) search:
+much faster than brute force
+trades a bit of accuracy for speed
+
+5) Retriever pipeline (end-to-end flow)
+Steps:
+take user query
+embed it (same embedding model)
+similarity search over index
+return top chunks (often with post-processing like filtering/reranking/dedup)
+
+B) Generator
+
+1) What it does
+Takes question + retrieved chunks and writes an answer grounded in them.
+
+2) Key idea / benefit
+You use the LLM mainly for language + instruction following, not for “stored knowledge”.
+Enables using smaller/cheaper models while improving factual accuracy (because the facts come from retrieval).
+

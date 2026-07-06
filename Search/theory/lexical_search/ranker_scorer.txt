@@ -110,6 +110,8 @@ N is the total number of documents.
 df(t) is the number of documents containing term t (document frequency).
 tf(t,d) is how many times t appears in document d.
 
+ 
+
 Overall score = sum of (score(t,d)) for all terms t in the query.
 
 Pros:
@@ -186,6 +188,9 @@ Stage 3: business rules / diversity / personalization
 This keeps search fast while improving quality.
 
 
+------------------------------------------------------------------------------------
+Question 1: "What happens to the IDF score if a query term does not exist in any document in our database ($\text{df}(t) = 0$)? 
+How do you fix it in production code?"The Trap: If $\text{df}(t) = 0$, you get a division-by-zero error ($\frac{N}{0}$).The Engineering Fix: Use Laplace Smoothing. You add 1 to the denominator (and often the numerator) to ensure mathematical stability:$$\text{IDF}_{\text{smoothed}} = \log\left(\frac{N + 1}{\text{df}(t) + 1}\right)$$Question 2: "When would you choose TF-IDF over dense vector embeddings (like BERT or Ada) for a text retrieval system?"The Strategy: Show you understand the classic trade-off between lexical exact-matching and semantic understanding.The Answer:Choose TF-IDF/BM25 when searching for exact product IDs, rare medical terms, error codes, legal serial numbers, or when serving latency and compute costs must be incredibly low. (TF-IDF requires a simple inverted index lookup, which is lightning fast).Choose Embeddings when you need to understand intent and synonyms (e.g., searching for "feline" should surface documents containing "cat").Pro-Tip: State that FAANG systems typically use a hybrid search architecture—using BM25/TF-IDF as a fast "first-stage pruner" to narrow billions of documents down to thousands, followed by a deep learning model to rerank the top candidates.Question 3: "If you use TF-IDF vectors as features for a machine learning classifier (like Logistic Regression), what preprocessing steps must you take?"The Answer: You must apply L2 Normalization to the text vectors. Because documents vary drastically in word count, longer documents will naturally have higher raw TF-IDF values across the board. Scaling each document vector to a unit length ($||\vec{v}||_2 = 1$) ensures that the classifier evaluates the proportional distribution of keywords rather than the length of the document.
 
 
 
